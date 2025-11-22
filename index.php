@@ -64,12 +64,39 @@ function getRowHeight($name) {
   .list-container {
     position: relative;
     width: 900px;
-    height: auto;
+    height: auto; /* will be replaced by JS with fixed 5-item height */
     overflow: hidden;
     border-radius: 0 0 15px 15px;
     background: #fff;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-    transition: height 0.35s ease;
+  }
+
+  /* Layout for side controls + list */
+  .content {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    justify-content: center;
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .list-wrap {
+    width: 900px;
+  }
+
+  .side-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+    padding-top: 8px;
+  }
+
+  .side-buttons button {
+    width: 120px;
+    padding: 12px 16px;
+    font-size: 16px;
   }
 
   /* Fixed highlight overlay at top with larger size */
@@ -91,7 +118,7 @@ function getRowHeight($name) {
     list-style: none;
     padding: 0;
     margin: 0;
-    transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1);
   }
 
   /* Larger list items with 4 columns */
@@ -161,7 +188,14 @@ function getRowHeight($name) {
   <div>School</div>
 </div>
 
-<div class="list-container">
+<div class="content">
+  <div class="side-buttons">
+    <button id="prevBtn">Previous</button>
+    <button id="nextBtn">Next</button>
+  </div>
+
+  <div class="list-wrap">
+    <div class="list-container">
   <!-- Fixed highlight overlay at top -->
   <div class="highlight-overlay" id="highlightOverlay"></div>
 
@@ -180,11 +214,9 @@ function getRowHeight($name) {
       </li>
     <?php endforeach; ?>
   </ul>
-</div>
 
-<div class="buttons">
-  <button id="prevBtn">Previous</button>
-  <button id="nextBtn">Next</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -205,20 +237,47 @@ function getRowHeight($name) {
     cumulativeOffset += height;
   });
 
+  // Start with a visible viewport of 1 item and grow up to a maximum of 5
+  const maxVisible = 5;
+  let visibleCount = 1; // current number of visible rows in viewport
+  const initialVisible = Math.min(visibleCount, items.length);
+  let viewportHeight = 0;
+  for (let i = 0; i < initialVisible; i++) {
+    viewportHeight += parseInt(items[i].getAttribute('data-height'));
+  }
+  // Lock the container height so it initially shows only 1 item
+  listContainer.style.height = `${viewportHeight}px`;
+
+  // topVisibleIndex controls which item is at the top of the viewport
+  let topVisibleIndex = 0;
+
   function updateList() {
-    // Keep the list static at the top; reveal items by increasing container height.
-    list.style.transform = `translateY(0px)`;
+    // Determine topVisibleIndex so the currentIndex is visible and
+    // prior behavior (new item appears below the first) is preserved
+    if (currentIndex <= visibleCount - 1) {
+      topVisibleIndex = 0; // keep first item at top while we have fewer than visibleCount
+    } else {
+      // once currentIndex reaches beyond the visible window, scroll so
+      // current item becomes the last visible item
+      topVisibleIndex = currentIndex - (visibleCount - 1);
+    }
+
+    const scrollOffset = itemOffsets[topVisibleIndex] || 0;
+    // Translate the list upward to make topVisibleIndex the first visible
+    list.style.transform = `translateY(-${scrollOffset}px)`;
 
     const currentHeight = parseInt(items[currentIndex].getAttribute('data-height'));
-    const offset = itemOffsets[currentIndex];
-
-    // Position the highlight overlay over the current item
-    highlightOverlay.style.transform = `translateY(${offset}px)`;
+    // Position overlay relative to the viewport (account for scrollOffset)
+    const overlayY = itemOffsets[currentIndex] - scrollOffset;
+    highlightOverlay.style.transform = `translateY(${overlayY}px)`;
     highlightOverlay.style.height = `${currentHeight}px`;
 
-    // Expand container to show items from 0..currentIndex (inclusive)
-    const containerHeight = offset + currentHeight;
-    listContainer.style.height = `${containerHeight}px`;
+    // Recompute container height based on current topVisibleIndex and visibleCount
+    let newContainerHeight = 0;
+    for (let i = topVisibleIndex; i < Math.min(topVisibleIndex + visibleCount, items.length); i++) {
+      newContainerHeight += parseInt(items[i].getAttribute('data-height'));
+    }
+    listContainer.style.height = `${newContainerHeight}px`;
 
     // Update button states
     prevBtn.disabled = currentIndex === 0;
@@ -234,7 +293,15 @@ function getRowHeight($name) {
   });
 
   nextBtn.addEventListener("click", () => {
-    if (currentIndex < items.length - 1) currentIndex++;
+    if (currentIndex < items.length - 1) {
+      currentIndex++;
+
+      // If we haven't reached max visible rows yet and currentIndex
+      // has moved past the last visible row, grow the viewport by one.
+      if (visibleCount < maxVisible && currentIndex >= visibleCount) {
+        visibleCount = Math.min(maxVisible, visibleCount + 1);
+      }
+    }
     updateList();
   });
 
