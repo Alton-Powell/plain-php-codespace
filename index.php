@@ -83,14 +83,16 @@ function getRowHeight($name) {
 
   .list-wrap {
     width: 900px;
+    flex: 0 0 900px; /* fixed width so side buttons don't distort the list */
   }
 
   .side-buttons {
     display: flex;
-    flex-direction: column;
+    flex-direction: row; /* place buttons side-by-side */
     gap: 12px;
     align-items: center;
     padding-top: 8px;
+    flex: 0 0 auto;
   }
 
   .side-buttons button {
@@ -142,9 +144,19 @@ function getRowHeight($name) {
   }
 
   li.active {
-    background-color: transparent;
     color: #333;
     font-weight: normal;
+  }
+
+  /* Medal backgrounds for positions */
+  .pos-1 {
+    background: linear-gradient(90deg, #FFD700 0%, #FFE57F 100%);
+  }
+  .pos-2 {
+    background: linear-gradient(90deg, #C0C0C0 0%, #E0E0E0 100%);
+  }
+  .pos-3 {
+    background: linear-gradient(90deg, #CD7F32 0%, #D99B6B 100%);
   }
 
   .buttons {
@@ -181,20 +193,19 @@ function getRowHeight($name) {
 <h1>Indonesia Student Convention 2025</h1>
 
 <!-- Column headers -->
-<div class="headers">
-  <div>Category</div>
-  <div>Position</div>
-  <div>Student or Group</div>
-  <div>School</div>
-</div>
+<!-- Column headers (moved into .list-wrap to keep alignment with list) -->
 
 <div class="content">
-  <div class="side-buttons">
-    <button id="prevBtn">Previous</button>
-    <button id="nextBtn">Next</button>
-  </div>
+  
 
   <div class="list-wrap">
+    <!-- Column headers moved here so their left edge lines up with the list -->
+    <div class="headers">
+      <div>Category</div>
+      <div>Position</div>
+      <div>Student or Group</div>
+      <div>School</div>
+    </div>
     <div class="list-container">
   <!-- Fixed highlight overlay at top -->
   <div class="highlight-overlay" id="highlightOverlay"></div>
@@ -206,7 +217,8 @@ function getRowHeight($name) {
       $rowHeight = getRowHeight($student['name']);
     ?>
       <!-- Added inline height and data attributes for dynamic sizing -->
-      <li style="height: <?= $rowHeight ?>px;" data-height="<?= $rowHeight ?>" data-index="<?= $index ?>">
+      <?php $posClass = 'pos-' . (int) $student['position']; ?>
+      <li class="<?= $posClass ?>" style="height: <?= $rowHeight ?>px;" data-height="<?= $rowHeight ?>" data-index="<?= $index ?>">
         <span><?= htmlspecialchars($student['category']) ?></span>
         <span><?= htmlspecialchars($student['position']) ?></span>
         <span class="name-cell"><?= htmlspecialchars($student['name']) ?></span>
@@ -217,8 +229,11 @@ function getRowHeight($name) {
 
     </div>
   </div>
+  <div class="side-buttons">
+    <button id="prevBtn">Previous</button>
+    <button id="nextBtn">Next</button>
+  </div>
 </div>
-
 <script>
   const list = document.getElementById("studentList");
   const items = Array.from(list.getElementsByTagName("li"));
