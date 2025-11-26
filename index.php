@@ -45,6 +45,10 @@ function getRowHeight($name) {
     color: #ac8505ff;
     font-size: 3rem;
     margin-bottom: 30px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 900px;
+    text-align: center;
     text-shadow: 
       2px 2px 0px #333,
       4px 4px 0px #000,
