@@ -29,6 +29,10 @@ function getRowHeight($name) {
     padding: 0;
     font-family: "Segoe UI", Arial, sans-serif;
     background: linear-gradient(135deg, #e0f2ff, #f8faff);
+    background-image: url('./image.png');
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
