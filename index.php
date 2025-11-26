@@ -42,9 +42,18 @@ function getRowHeight($name) {
   }
 
   h1 {
-    color: #003366;
-    font-size: 2rem;
+    color: #ac8505ff;
+    font-size: 3rem;
     margin-bottom: 30px;
+    text-shadow: 
+      2px 2px 0px #333,
+      4px 4px 0px #000,
+      6px 6px 0px rgba(0, 0, 0, 0.5),
+      0px 0px 20px rgba(255, 215, 0, 0.6),
+      inset -2px -2px 5px rgba(0, 0, 0, 0.3);
+    font-weight: bold;
+    letter-spacing: 1px;
+    transform: perspective(500px) rotateX(2deg);
   }
 
   /* Column headers styling */
