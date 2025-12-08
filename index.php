@@ -41,13 +41,18 @@ function getRowHeight($name) {
     padding: 20px;
   }
 
+  :root {
+    --row-gap: 10mm; /* gap between rows */
+  }
+
   h1 {
     color: #ac8505ff;
     font-size: 3rem;
     margin-bottom: 30px;
     margin-left: auto;
     margin-right: auto;
-    width: 900px;
+    width: 100%;
+    max-width: 1100px;
     text-align: center;
     text-shadow: 
       2px 2px 0px #333,
@@ -62,29 +67,31 @@ function getRowHeight($name) {
 
   /* Column headers styling */
   .headers {
-    width: 900px;
+    width: 100%;
     display: grid;
     grid-template-columns: 1.2fr 1.2fr 1.5fr 1.5fr;
     gap: 15px;
     padding: 18px;
+    padding-left: calc(18px + 10mm);
+    padding-right: calc(18px + 10mm);
     background: #003366;
     border-radius: 10px 10px 0 0;
     border-bottom: 3px solid #007BFF;
     font-weight: bold;
     color: white;
     text-align: center;
-    font-size: 16px;
+    font-size: 20px;
     margin-bottom: 0;
   }
 
   /* Expanded list container size */
   .list-container {
     position: relative;
-    width: 900px;
-    height: auto; /* will be replaced by JS with fixed 5-item height */
+    width: 100%;
+    height: auto; /* will be replaced by JS */
     overflow: hidden;
     border-radius: 0 0 15px 15px;
-    background: #fff;
+    background: transparent;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
   }
 
@@ -100,8 +107,11 @@ function getRowHeight($name) {
   }
 
   .list-wrap {
-    width: 900px;
-    flex: 0 0 900px; /* fixed width so side buttons don't distort the list */
+    width: calc(100% - 80px);
+    max-width: none;
+    margin-left: 40px;
+    margin-right: 40px;
+    flex: 0 0 auto;
   }
 
   .bottom-buttons {
@@ -147,18 +157,24 @@ function getRowHeight($name) {
     grid-template-columns: 1.2fr 1.2fr 1.5fr 1.5fr;
     gap: 15px;
     align-items: center;
-    padding: 18px;
+    padding: 24px;
+    padding-left: calc(24px + 10mm);
+    padding-right: calc(24px + 10mm);
     text-align: center;
-    font-size: 16px;
+    font-size: 22px;
     color: #333;
     border-bottom: 1px solid #eee;
+    margin-bottom: var(--row-gap);
+    background: #fff;
   }
 
   /* Dynamic font sizing for long names */
   li span.name-cell {
+    display: block;
     line-height: 1.4;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   li.active {
@@ -266,37 +282,79 @@ function getRowHeight($name) {
 
   const itemOffsets = [];
   let cumulativeOffset = 0;
+  
+  // Convert CSS `--row-gap` to pixels
+  function mmToPx(value) {
+    const el = document.createElement('div');
+    el.style.width = value;
+    el.style.position = 'absolute';
+    el.style.visibility = 'hidden';
+    document.body.appendChild(el);
+    const px = el.getBoundingClientRect().width;
+    document.body.removeChild(el);
+    return px;
+  }
+
+  const gapCss = getComputedStyle(document.documentElement).getPropertyValue('--row-gap') || '10mm';
+  const gapPx = mmToPx(gapCss.trim());
+
   items.forEach((item, index) => {
     itemOffsets.push(cumulativeOffset);
     const height = parseInt(item.getAttribute('data-height'));
-    cumulativeOffset += height;
+    cumulativeOffset += height + gapPx;
   });
 
-  // Start with a visible viewport of 1 item and grow up to a maximum of 5
-  const maxVisible = 5;
-  let visibleCount = 1; // current number of visible rows in viewport
-  const initialVisible = Math.min(visibleCount, items.length);
-  let viewportHeight = 0;
-  for (let i = 0; i < initialVisible; i++) {
-    viewportHeight += parseInt(items[i].getAttribute('data-height'));
+  // Fixed viewport height to keep buttons in place
+  const viewportHeightLimit = 800; // Adjust as needed
+  const defaultMaxVisible = 8; // Default number of rows to show
+  let visibleCount = defaultMaxVisible;
+
+  // Calculate how many rows can fit given the current visible items' heights
+  function recalculateVisibleCount(startIndex) {
+    let totalHeight = 0;
+    let count = 0;
+    for (let i = startIndex; i < items.length && count < defaultMaxVisible; i++) {
+      const rowHeight = parseInt(items[i].getAttribute('data-height'));
+      const gapHeight = i < items.length - 1 ? gapPx : 0;
+      if (totalHeight + rowHeight + (count > 0 ? gapPx : 0) <= viewportHeightLimit) {
+        totalHeight += rowHeight + (count > 0 ? gapPx : 0);
+        count++;
+      } else if (count === 0) {
+        count = 1;
+        break;
+      } else {
+        break;
+      }
+    }
+    return count;
   }
-  // Lock the container height so it initially shows only 1 item
-  listContainer.style.height = `${viewportHeight}px`;
+
+  // Calculate initial visible count
+  visibleCount = recalculateVisibleCount(0);
+  // Lock the container to fixed viewport height
+  listContainer.style.height = `${viewportHeightLimit}px`;
 
   // topVisibleIndex controls which item is at the top of the viewport
   let topVisibleIndex = 0;
 
   function updateList() {
-    // Determine topVisibleIndex so the currentIndex is visible and
-    // prior behavior (new item appears below the first) is preserved
-    if (currentIndex <= visibleCount - 1) {
-      topVisibleIndex = 0; // keep first item at top while we have fewer than visibleCount
+    // Determine topVisibleIndex so the currentIndex is visible and fully in view
+    if (currentIndex <= defaultMaxVisible - 1) {
+      topVisibleIndex = 0;
     } else {
-      // once currentIndex reaches beyond the visible window, scroll so
-      // current item becomes the last visible item
-      topVisibleIndex = currentIndex - (visibleCount - 1);
+      // Scroll so current item appears at bottom of visible area
+      topVisibleIndex = currentIndex - (defaultMaxVisible - 1);
     }
 
+    // Recalculate visibleCount - how many rows actually fit from topVisibleIndex
+    visibleCount = recalculateVisibleCount(topVisibleIndex);
+    
+    // If current item is no longer visible after recalculation, adjust topVisibleIndex
+    if (currentIndex >= topVisibleIndex + visibleCount) {
+      topVisibleIndex = Math.max(0, currentIndex - visibleCount + 1);
+      visibleCount = recalculateVisibleCount(topVisibleIndex);
+    }
+    
     const scrollOffset = itemOffsets[topVisibleIndex] || 0;
     // Translate the list upward to make topVisibleIndex the first visible
     list.style.transform = `translateY(-${scrollOffset}px)`;
@@ -307,12 +365,8 @@ function getRowHeight($name) {
     highlightOverlay.style.transform = `translateY(${overlayY}px)`;
     highlightOverlay.style.height = `${currentHeight}px`;
 
-    // Recompute container height based on current topVisibleIndex and visibleCount
-    let newContainerHeight = 0;
-    for (let i = topVisibleIndex; i < Math.min(topVisibleIndex + visibleCount, items.length); i++) {
-      newContainerHeight += parseInt(items[i].getAttribute('data-height'));
-    }
-    listContainer.style.height = `${newContainerHeight}px`;
+    // Container height is fixed to viewport limit
+    listContainer.style.height = `${viewportHeightLimit}px`;
 
     // Update button states
     prevBtn.disabled = currentIndex === 0;
@@ -330,12 +384,6 @@ function getRowHeight($name) {
   nextBtn.addEventListener("click", () => {
     if (currentIndex < items.length - 1) {
       currentIndex++;
-
-      // If we haven't reached max visible rows yet and currentIndex
-      // has moved past the last visible row, grow the viewport by one.
-      if (visibleCount < maxVisible && currentIndex >= visibleCount) {
-        visibleCount = Math.min(maxVisible, visibleCount + 1);
-      }
     }
     updateList();
   });
