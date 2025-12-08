@@ -1,5 +1,5 @@
 <?php
-$students = json_decode(file_get_contents(__DIR__ . '/students.json'), true);
+$students = json_decode(file_get_contents(__DIR__ . '/students_sorted.json'), true);
 
 function getRowHeight($name) {
     $commaCount = substr_count($name, ',');
