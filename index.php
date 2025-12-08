@@ -155,7 +155,7 @@ function getRowHeight($name) {
   li {
     display: grid;
     grid-template-columns: 1.2fr 1.2fr 1.5fr 1.5fr;
-    gap: 15px;
+    gap: 10px;
     align-items: center;
     padding: 24px;
     padding-left: calc(24px + 10mm);
@@ -279,6 +279,8 @@ function getRowHeight($name) {
   const listContainer = document.querySelector('.list-container');
 
   let currentIndex = 0;
+  let visibleCount = 1; // Start with 1 item visible
+  const maxVisible = 7; // Maximum items to show
 
   const itemOffsets = [];
   let cumulativeOffset = 0;
@@ -304,57 +306,27 @@ function getRowHeight($name) {
     cumulativeOffset += height + gapPx;
   });
 
-  // Fixed viewport height to keep buttons in place
-  const viewportHeightLimit = 800; // Adjust as needed
-  const defaultMaxVisible = 8; // Default number of rows to show
-  let visibleCount = defaultMaxVisible;
-
-  // Calculate how many rows can fit given the current visible items' heights
-  function recalculateVisibleCount(startIndex) {
+  // Calculate container height based on visible items
+  function calculateContainerHeight() {
     let totalHeight = 0;
-    let count = 0;
-    for (let i = startIndex; i < items.length && count < defaultMaxVisible; i++) {
+    for (let i = 0; i < visibleCount && i < items.length; i++) {
       const rowHeight = parseInt(items[i].getAttribute('data-height'));
-      const gapHeight = i < items.length - 1 ? gapPx : 0;
-      if (totalHeight + rowHeight + (count > 0 ? gapPx : 0) <= viewportHeightLimit) {
-        totalHeight += rowHeight + (count > 0 ? gapPx : 0);
-        count++;
-      } else if (count === 0) {
-        count = 1;
-        break;
-      } else {
-        break;
-      }
+      totalHeight += rowHeight + (i > 0 ? gapPx : 0);
     }
-    return count;
+    return totalHeight;
   }
-
-  // Calculate initial visible count
-  visibleCount = recalculateVisibleCount(0);
-  // Lock the container to fixed viewport height
-  listContainer.style.height = `${viewportHeightLimit}px`;
 
   // topVisibleIndex controls which item is at the top of the viewport
   let topVisibleIndex = 0;
 
   function updateList() {
-    // Determine topVisibleIndex so the currentIndex is visible and fully in view
-    if (currentIndex <= defaultMaxVisible - 1) {
-      topVisibleIndex = 0;
+    // Keep current item visible within viewport
+    if (currentIndex >= visibleCount) {
+      topVisibleIndex = currentIndex - visibleCount + 1;
     } else {
-      // Scroll so current item appears at bottom of visible area
-      topVisibleIndex = currentIndex - (defaultMaxVisible - 1);
+      topVisibleIndex = 0;
     }
 
-    // Recalculate visibleCount - how many rows actually fit from topVisibleIndex
-    visibleCount = recalculateVisibleCount(topVisibleIndex);
-    
-    // If current item is no longer visible after recalculation, adjust topVisibleIndex
-    if (currentIndex >= topVisibleIndex + visibleCount) {
-      topVisibleIndex = Math.max(0, currentIndex - visibleCount + 1);
-      visibleCount = recalculateVisibleCount(topVisibleIndex);
-    }
-    
     const scrollOffset = itemOffsets[topVisibleIndex] || 0;
     // Translate the list upward to make topVisibleIndex the first visible
     list.style.transform = `translateY(-${scrollOffset}px)`;
@@ -365,8 +337,8 @@ function getRowHeight($name) {
     highlightOverlay.style.transform = `translateY(${overlayY}px)`;
     highlightOverlay.style.height = `${currentHeight}px`;
 
-    // Container height is fixed to viewport limit
-    listContainer.style.height = `${viewportHeightLimit}px`;
+    // Container height grows dynamically based on visible items
+    listContainer.style.height = `${calculateContainerHeight()}px`;
 
     // Update button states
     prevBtn.disabled = currentIndex === 0;
@@ -384,6 +356,10 @@ function getRowHeight($name) {
   nextBtn.addEventListener("click", () => {
     if (currentIndex < items.length - 1) {
       currentIndex++;
+      // Grow viewport up to maximum of 7 items
+      if (visibleCount < maxVisible) {
+        visibleCount++;
+      }
     }
     updateList();
   });
