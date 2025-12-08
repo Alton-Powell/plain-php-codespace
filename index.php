@@ -91,7 +91,8 @@ function getRowHeight($name) {
   /* Layout for side controls + list */
   .content {
     display: flex;
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: center;
     gap: 20px;
     justify-content: center;
     width: 100%;
@@ -103,19 +104,19 @@ function getRowHeight($name) {
     flex: 0 0 900px; /* fixed width so side buttons don't distort the list */
   }
 
-  .side-buttons {
+  .bottom-buttons {
     display: flex;
-    flex-direction: row; /* place buttons side-by-side */
-    gap: 12px;
+    flex-direction: row;
+    gap: 40px;
     align-items: center;
-    padding-top: 8px;
-    flex: 0 0 auto;
+    justify-content: center;
+    margin-top: 40px;
+    margin-bottom: 20px;
   }
 
-  .side-buttons button {
-    width: 120px;
-    padding: 12px 16px;
-    font-size: 16px;
+  .bottom-buttons button {
+    padding: 12px 30px;
+    font-size: 18px;
   }
 
   /* Fixed highlight overlay at top with larger size */
@@ -246,11 +247,13 @@ function getRowHeight($name) {
 
     </div>
   </div>
-  <div class="side-buttons">
-    <button id="prevBtn">Previous</button>
-    <button id="nextBtn">Next</button>
-  </div>
 </div>
+
+<div class="bottom-buttons">
+  <button id="prevBtn">Previous</button>
+  <button id="nextBtn">Next</button>
+</div>
+
 <script>
   const list = document.getElementById("studentList");
   const items = Array.from(list.getElementsByTagName("li"));
