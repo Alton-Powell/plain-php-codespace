@@ -1,5 +1,5 @@
 <?php
-$students = json_decode(file_get_contents(__DIR__ . '/students_sorted.json'), true);
+$students = json_decode(file_get_contents(__DIR__ . '/student_sorted.json'), true);
 
 function getRowHeight($name) {
     $commaCount = substr_count($name, ',');
@@ -281,6 +281,7 @@ function getRowHeight($name) {
   let currentIndex = 0;
   let visibleCount = 1; // Start with 1 item visible
   const maxVisible = 7; // Maximum items to show
+  const maxViewportHeight = 500; // Maximum viewport height in px
 
   const itemOffsets = [];
   let cumulativeOffset = 0;
@@ -306,13 +307,27 @@ function getRowHeight($name) {
     cumulativeOffset += height + gapPx;
   });
 
-  // Calculate container height based on visible items
+  // Calculate container height based on visible items (max 7 items or 500px)
   function calculateContainerHeight() {
     let totalHeight = 0;
+    let itemCount = 0;
+    
+    // Add heights for all visible items up to visibleCount or height limit
     for (let i = 0; i < visibleCount && i < items.length; i++) {
       const rowHeight = parseInt(items[i].getAttribute('data-height'));
-      totalHeight += rowHeight + (i > 0 ? gapPx : 0);
+      const gapHeight = i > 0 ? gapPx : 0;
+      const newHeight = totalHeight + rowHeight + gapHeight;
+      
+      // Stop if we hit the max height or max items
+      if (newHeight > maxViewportHeight || itemCount >= maxVisible) {
+        break;
+      }
+      
+      totalHeight = newHeight;
+      itemCount++;
     }
+    
+    // Return actual height of visible items (shrinks to fit)
     return totalHeight;
   }
 
@@ -356,9 +371,17 @@ function getRowHeight($name) {
   nextBtn.addEventListener("click", () => {
     if (currentIndex < items.length - 1) {
       currentIndex++;
-      // Grow viewport up to maximum of 7 items
+      // Grow viewport up to maximum of 7 items OR 500px height
       if (visibleCount < maxVisible) {
-        visibleCount++;
+        // Check if adding one more item would exceed height limit
+        let testHeight = 0;
+        for (let i = 0; i < visibleCount + 1 && i < items.length; i++) {
+          const rowHeight = parseInt(items[i].getAttribute('data-height'));
+          testHeight += rowHeight + (i > 0 ? gapPx : 0);
+        }
+        if (testHeight <= maxViewportHeight) {
+          visibleCount++;
+        }
       }
     }
     updateList();
